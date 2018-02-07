@@ -59,16 +59,35 @@ check_vmware_vagrant_plugin_installed() {
   fi
 }
 
+# Returns 0 if not installed or 1 if installed
+check_vsphere_vagrant_plugin_installed() {
+  VAGRANT_VSPHERE_PLUGIN_PRESENT=$(vagrant plugin list | grep -c 'vagrant-vsphere')
+  if [ $VAGRANT_VSPHERE_PLUGIN_PRESENT -eq 0 ]; then
+    (>&2 echo "The vagrant-vsphere plugin is not currently installed. This script will attempt to install it now.")
+    $(which vagrant) plugin install "vagrant-vsphere"
+    if [ "$?" -ne 0 ]; then
+      (>&2 echo "Unable to install the vagrant-vphsere plugin. Please try to do so manually and re-run this script.")
+      exit 1
+    fi
+  fi
+
+  else
+    echo $VAGRANT_VSPHERE_PLUGIN_PRESENT
+  fi
+}
+
 # List the available Vagrant providers present on the system
 list_providers() {
   VBOX_PRESENT=0
   VMWARE_FUSION_PRESENT=0
+  VAGRANT_VSPHERE_PLUGIN_PRESENT=0
 
   if [ $(uname) == "Darwin" ]; then
     # Detect Providers on OSX
     VBOX_PRESENT=$(check_virtualbox_installed)
     VMWARE_FUSION_PRESENT=$(check_vmware_fusion_installed)
     VAGRANT_VMWARE_PLUGIN_PRESENT=$(check_vmware_vagrant_plugin_installed)
+    VAGRANT_VSPHERE_PLUGIN_PRESENT=$(check_vsphere_vagrant_plugin_installed)
   else
     # Assume the only other available provider is VirtualBox
     VBOX_PRESENT=$(check_virtualbox_installed)
@@ -84,13 +103,13 @@ list_providers() {
   fi
   if [[ $VBOX_PRESENT -eq 0 ]] && [[ $VMWARE_FUSION_PRESENT -eq 0 ]]
   then
-    (>&2 echo "You need to install a provider such as VirtualBox or VMware Fusion to continue.")
+    (>&2 echo "You need to install a provider such as VirtualBox, VMware Fusion or VMware vSphere to continue.")
     exit 1
   fi
   (>&2 echo -e "\nWhich provider would you like to use?")
   read PROVIDER
   # Sanity check
-  if [[ "$PROVIDER" != "virtualbox" ]] && [[ "$PROVIDER" != "vmware_fusion" ]]
+  if [[ "$PROVIDER" != "virtualbox" ]] && [[ "$PROVIDER" != "vmware_fusion" ]] && [[ "$PROVIDER != "vsphere" ]]
   then
     (>&2 echo "Please choose a valid provider. \"$PROVIDER\" is not a valid option")
     exit 1
@@ -259,6 +278,9 @@ main() {
       PROVIDER="$1"
       ;;
       vmware_fusion)
+      PROVIDER="$1"
+      ;;
+      vsphere)
       PROVIDER="$1"
       ;;
       *)
